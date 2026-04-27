@@ -4,10 +4,10 @@ defined( 'ABSPATH' ) || exit;
 class WP_OG_Injector {
 
 	public function __construct() {
-		// Priority 1: remove competing og:image tags from Yoast / RankMath / etc.
-		add_action( 'wp_head', array( $this, 'remove_other_og_images' ), 1 );
+		// template_redirect fires before wp_head: garantiza que los filtros
+		// de Yoast/RankMath/AIOSEO estén registrados antes de que impriman.
+		add_action( 'template_redirect', array( $this, 'remove_other_og_images' ) );
 
-		// Priority 10: inject our og tags
 		add_action( 'wp_head', array( $this, 'inject_og_tags' ), 10 );
 	}
 
@@ -58,14 +58,24 @@ class WP_OG_Injector {
 			return;
 		}
 
-		$opts        = WP_OG_Settings::get_options();
-		$api_url     = $opts['api_url'];
-		$title       = $product->get_name();
-		$regular_raw = $product->get_regular_price();
-		$sale_raw    = $product->get_sale_price();
+		$opts    = WP_OG_Settings::get_options();
+		$api_url = $opts['api_url'];
+		$title   = $product->get_name();
 
-		$price      = $regular_raw !== '' ? '$' . number_format( (float) $regular_raw, 0, ',', '.' ) : '';
-		$sale_price = $sale_raw !== '' ? '$' . number_format( (float) $sale_raw, 0, ',', '.' ) : '';
+		if ( $product->is_type( 'variable' ) ) {
+			$min_raw = $product->get_variation_price( 'min', true );
+			$max_raw = $product->get_variation_price( 'max', true );
+			$price   = '$' . number_format( (float) $min_raw, 0, ',', '.' );
+			if ( (float) $min_raw !== (float) $max_raw ) {
+				$price .= ' - $' . number_format( (float) $max_raw, 0, ',', '.' );
+			}
+			$sale_price = '';
+		} else {
+			$regular_raw = $product->get_regular_price();
+			$sale_raw    = $product->get_sale_price();
+			$price       = $regular_raw !== '' ? '$' . number_format( (float) $regular_raw, 0, ',', '.' ) : '';
+			$sale_price  = $sale_raw !== '' ? '$' . number_format( (float) $sale_raw, 0, ',', '.' ) : '';
+		}
 
 		$image_id  = $product->get_image_id();
 		$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : '';
@@ -95,12 +105,21 @@ class WP_OG_Injector {
 			return $v !== '';
 		} );
 
-		$og_image_url = add_query_arg( array_map( 'rawurlencode', $params ), esc_url( $api_url ) );
+		$og_image_url = add_query_arg( $params, esc_url( $api_url ) );
+
+		$description = wp_strip_all_tags( $product->get_short_description() );
+		if ( $description === '' ) {
+			$description = wp_trim_words( wp_strip_all_tags( $product->get_description() ), 20, '…' );
+		}
 
 		echo "\n";
+		printf( '<meta property="og:title" content="%s">' . "\n", esc_attr( $title ) );
+		printf( '<meta property="og:url" content="%s">' . "\n", esc_url( get_permalink() ) );
+		if ( $description !== '' ) {
+			printf( '<meta property="og:description" content="%s">' . "\n", esc_attr( $description ) );
+		}
 		printf( '<meta property="og:image" content="%s">' . "\n", esc_url( $og_image_url ) );
 		echo '<meta property="og:image:width" content="1200">' . "\n";
 		echo '<meta property="og:image:height" content="630">' . "\n";
-		printf( '<meta property="og:title" content="%s">' . "\n", esc_attr( $title ) );
 	}
 }
