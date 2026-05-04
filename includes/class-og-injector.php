@@ -62,19 +62,23 @@ class WP_OG_Injector {
 		$api_url = $opts['api_url'];
 		$title   = $product->get_name();
 
+		$dec_sep  = wc_get_price_decimal_separator();
+		$thou_sep = wc_get_price_thousand_separator();
+		$decimals = wc_get_price_decimals();
+
 		if ( $product->is_type( 'variable' ) ) {
 			$min_raw = $product->get_variation_price( 'min', true );
 			$max_raw = $product->get_variation_price( 'max', true );
-			$price   = '$' . number_format( (float) $min_raw, 0, ',', '.' );
+			$price   = '$' . number_format( (float) $min_raw, $decimals, $dec_sep, $thou_sep );
 			if ( (float) $min_raw !== (float) $max_raw ) {
-				$price .= ' - $' . number_format( (float) $max_raw, 0, ',', '.' );
+				$price .= ' - $' . number_format( (float) $max_raw, $decimals, $dec_sep, $thou_sep );
 			}
 			$sale_price = '';
 		} else {
 			$regular_raw = $product->get_regular_price();
 			$sale_raw    = $product->get_sale_price();
-			$price       = $regular_raw !== '' ? '$' . number_format( (float) $regular_raw, 0, ',', '.' ) : '';
-			$sale_price  = $sale_raw !== '' ? '$' . number_format( (float) $sale_raw, 0, ',', '.' ) : '';
+			$price       = $regular_raw !== '' ? '$' . number_format( (float) $regular_raw, $decimals, $dec_sep, $thou_sep ) : '';
+			$sale_price  = $sale_raw !== '' ? '$' . number_format( (float) $sale_raw, $decimals, $dec_sep, $thou_sep ) : '';
 		}
 
 		$image_id  = $product->get_image_id();
@@ -96,6 +100,10 @@ class WP_OG_Injector {
 			$params['salePrice'] = $sale_price;
 		}
 
+		if ( $opts['badge'] !== '' ) {
+			$params['badge'] = $opts['badge'];
+		}
+
 		if ( $image_url ) {
 			$params['image'] = $image_url;
 		}
@@ -113,6 +121,9 @@ class WP_OG_Injector {
 		}
 
 		echo "\n";
+		if ( ! empty( $opts['locale'] ) ) {
+			printf( '<meta property="og:locale" content="%s">' . "\n", esc_attr( $opts['locale'] ) );
+		}
 		printf( '<meta property="og:title" content="%s">' . "\n", esc_attr( $title ) );
 		printf( '<meta property="og:url" content="%s">' . "\n", esc_url( get_permalink() ) );
 		if ( $description !== '' ) {

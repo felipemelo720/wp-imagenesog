@@ -39,6 +39,8 @@ class WP_OG_Settings {
 		$clean['text_color']   = sanitize_hex_color( $input['text_color'] ?? '' ) ?: '#FFFFFF';
 		$clean['accent_color'] = sanitize_hex_color( $input['accent_color'] ?? '' ) ?: '#98CC3F';
 		$clean['cta']          = sanitize_text_field( $input['cta'] ?? '' );
+		$clean['badge']        = sanitize_text_field( $input['badge'] ?? '' );
+		$clean['locale']       = sanitize_text_field( $input['locale'] ?? 'es_CL' );
 
 		$allowed_templates = array( 'default', 'minimal', 'gradient' );
 		$clean['template'] = in_array( $input['template'] ?? '', $allowed_templates, true )
@@ -75,6 +77,8 @@ class WP_OG_Settings {
 			'template'     => 'default',
 			'font'         => 'inter',
 			'cta'          => 'Ver producto',
+			'badge'        => '',
+			'locale'       => 'es_CL',
 		);
 
 		$saved = get_option( self::OPTION_KEY, array() );
@@ -251,6 +255,39 @@ class WP_OG_Settings {
 									<p class="description"><?php esc_html_e( 'Texto pie de imagen, ej: "Ver producto"', 'wp-og-plugin' ); ?></p>
 								</td>
 							</tr>
+							<tr>
+								<th scope="row">
+									<label for="wp_og_badge"><?php esc_html_e( 'Badge', 'wp-og-plugin' ); ?></label>
+								</th>
+								<td>
+									<input
+										type="text"
+										id="wp_og_badge"
+										name="<?php echo esc_attr( self::OPTION_KEY ); ?>[badge]"
+										value="<?php echo esc_attr( $opts['badge'] ); ?>"
+										class="regular-text"
+										maxlength="30"
+									>
+									<p class="description"><?php esc_html_e( 'Texto de badge sobre la imagen, ej: "OFERTA", "NUEVO". Dejar vacío para no mostrar.', 'wp-og-plugin' ); ?></p>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									<label for="wp_og_locale"><?php esc_html_e( 'og:locale', 'wp-og-plugin' ); ?></label>
+								</th>
+								<td>
+									<input
+										type="text"
+										id="wp_og_locale"
+										name="<?php echo esc_attr( self::OPTION_KEY ); ?>[locale]"
+										value="<?php echo esc_attr( $opts['locale'] ); ?>"
+										class="small-text"
+										maxlength="10"
+										placeholder="es_CL"
+									>
+									<p class="description"><?php esc_html_e( 'Locale para og:locale, ej: es_CL, en_US, es_ES.', 'wp-og-plugin' ); ?></p>
+								</td>
+							</tr>
 						</table>
 
 						<?php submit_button( __( 'Guardar configuración', 'wp-og-plugin' ) ); ?>
@@ -332,6 +369,7 @@ class WP_OG_Settings {
 					template:    val('wp_og_template'),
 					font:        val('wp_og_font'),
 					cta:         val('wp_og_cta'),
+					badge:       val('wp_og_badge'),
 				};
 				var qs = Object.keys(params)
 					.filter(function(k) { return params[k] !== ''; })
